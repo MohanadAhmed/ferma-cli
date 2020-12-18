@@ -1,0 +1,11 @@
+{
+  "name": "ferma-cli",
+  "version": "1.0.0",
+  "description": "FERMA UOFK (Faculty of Engineering) Command Line Interface Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ."
+  },
+  "author": "Mohanad Ahmed",
+  "license": "ISC"
+}
