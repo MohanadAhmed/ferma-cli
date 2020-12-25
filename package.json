@@ -7,5 +7,11 @@
     "test": "node ."
   },
   "author": "Mohanad Ahmed",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "excel4node": "^1.7.2",
+    "msnodesqlv8": "^1.1.8",
+    "mssql": "^6.3.0"
+  }
 }
