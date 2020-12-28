@@ -187,11 +187,13 @@ function genResultFiles(resultsData, filename) {
             } else {
                 ws.cell(marksStartRow + n, gpaStartColumn).style(gpaStyle);
             }
-            // if (marksData[n].cgpa) {
-            //     ws.cell(marksStartRow + n, gpaStartColumn + 1)
-            //         .number(resultsList[n].cgpa)
-            //         .style(gpaStyle);
-            // }
+            if (marksData[n].CGPA) {
+                ws.cell(marksStartRow + n, gpaStartColumn + 1)
+                    .number(marksData[n].CGPA)
+                    .style(gpaStyle);
+            }else {
+                ws.cell(marksStartRow + n, gpaStartColumn + 1).style(gpaStyle);
+            }
             // if (marksData[n].rec) {
             //     ws.cell(marksStartRow + n, gpaStartColumn + 2)
             //         .string(resultsList[n].rec)
