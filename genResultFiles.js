@@ -46,7 +46,7 @@ function genResultFiles(resultsData, filename) {
     function GetHeaderText(resAdminData){
         const ResultTitleTexts = [
             "نتائج الفصل الأول للعام ",
-            "النتائج النهائية للعام  ",
+            "النتائج النهائية للعام ",
             "نتائج الملاحق و البدائل للعام "
         ];
         const g_grades = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس"];
