@@ -1,10 +1,11 @@
 const xlwriter = require('excel4node')
+const genSignaturesImage = require('./genSignaturesImage');
 
 function genResultFiles(resultsData, filename) {
     var wb = new xlwriter.Workbook()
 
     var options = {
-        margins: { 'bottom': 1.45, 'footer': 0.3, 'header': 0.3, 'left': 0.25, 'right': 0.21, 'top': 1.25 },
+        margins: { 'bottom': 1.25, 'footer': 0.3, 'header': 0.3, 'left': 0.25, 'right': 0.20, 'top': 1.5 },
         pageSetup: { paperSize: 'A4_PAPER', orientation: 'landscape' },
         printOptions: { centerHorizontal: true },
         sheetView: { rightToLeft: true }
@@ -22,46 +23,49 @@ function genResultFiles(resultsData, filename) {
         studentNameStyle } = CreateWorkbookStyles();
 
     for (res of resultsData) {
-        var isNonSpecialized = res.Discipline.includes('Non-Specialized'); 
+        var isNonSpecialized = res.Discipline.includes('Non-Specialized');
         courseData = res['Courses'];
         marksData = res['MarksData'];
         resAdminData = {
             sheetName: isNonSpecialized ? res.StudentDepartment : res.Discipline,
             MeetingResult: false,
-            Year: `${res.YearId}/${res.YearId+1}`,
-            Grade:  res.GradeId,
+            Year: `${res.YearId}/${res.YearId + 1}`,
+            Grade: res.GradeId,
             Semester: res.SemesterId,
             AdminDepartment: res.AdminDepartment,
             AdminDepartmentArabic: res.AdminDepartmentArabic,
             StudentDepartment: res.StudentDepartment,
             StudentDepartmentArabic: res.StudentDepartmentArabic,
             Discipline: res.Discipline,
-            DisciplineArabic: res.DisciplineArabic
+            DisciplineArabic: res.DisciplineArabic,
+            Signatures: res.Signatures
         }
-        GenerateDetailedResultWorksheet(courseData, marksData, resAdminData);
+        // console.log(res.Signatures)
+        GenerateBoardResultWorksheet(courseData, marksData, resAdminData);
     }
     wb.write(filename)
 
-    
-    function GetHeaderText(resAdminData){
+
+    function GetHeaderText(resAdminData) {
         const ResultTitleTexts = [
             "نتائج الفصل الأول للعام ",
-            "النتائج النهائية للعام ",
+            "النتائج النهائية للعام الدراسي",
             "نتائج الملاحق و البدائل للعام "
         ];
         const g_grades = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس"];
 
         var DepartmentHeadTitle = resAdminData.StudentDepartmentArabic.replace('المكلف', '');
-        var resultTitle = ResultTitleTexts[resAdminData.Semester-1];
+        var resultTitle = ResultTitleTexts[resAdminData.Semester - 1];
 
-        return `&Cبسم الله الرحمن الرحيم
-        جامعة الخرطوم - كلية الهندسة
-        قسم ${DepartmentHeadTitle}
-        ${resultTitle}  ${resAdminData.Year}
-        المستوى ${g_grades[resAdminData.Grade-1]}`;
+        return `&C&"Arabic Typesetting"&14بسم الله الرحمن الرحيم
+جامعة الخرطوم - كلية الهندسة
+قسم ${DepartmentHeadTitle}
+${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Grade - 1]}` +
+`${resAdminData.Discipline.includes("Non-Specialized") ? '' : '\n(' + resAdminData.DisciplineArabic + ')'}`
+            + '\n(خاضعة لإجازة مجلس الأساتذة)';
     }
 
-    function GenerateDetailedResultWorksheet(coursesList, marksData, resAdminData) {
+    function GenerateBoardResultWorksheet(coursesList, marksData, resAdminData) {
         // console.log(resAdminData)
         sheetName = resAdminData.sheetName;
         var MeetingResult = resAdminData.MeetingResult;
@@ -69,16 +73,22 @@ function genResultFiles(resultsData, filename) {
         console.log(`Adding sheet ${sheetName}`)
 
         headerText = GetHeaderText(resAdminData);
+        footerText = "&C&G&Lالصفحة &P من &N"
         options.headerFooter = {
-            'evenFooter': '',
+            'evenFooter': footerText,
             'evenHeader': headerText,
-            'firstFooter': '',
-            'firstHeader': headerText,
-            'oddFooter': '',
+            'oddFooter': footerText,
             'oddHeader': headerText,
         }
+
         var ws = wb.addWorksheet(sheetName, options);
         var courseColumnStep = MeetingResult ? 2 : 1;
+
+        ws.addHeaderFooterImage({
+            image: genSignaturesImage(resAdminData.Signatures),
+            type: 'picture',
+            scale: 0.22
+        }, 'CF')
 
         function ApplyConditionalFormatForString(lookFor, range, startCell, formatStyle, priority) {
             ws.addConditionalFormattingRule(range, {
@@ -116,18 +126,8 @@ function genResultFiles(resultsData, filename) {
 
         ws.column(1).setWidth(4);
         ws.column(2).setWidth(6.25);
-        ws.column(3).setWidth(9.25);
-        ws.column(4).setWidth(25);
-
-        // ws.addImage({
-        //     path: '../logo.png',
-        //     type: 'picture',
-        //     position: {
-        //         type: 'absoluteAnchor',
-        //         x: '1in',
-        //         y: '2in',
-        //     }
-        // })
+        ws.column(3).setWidth(10.75);
+        ws.column(4).setWidth(22.25);
 
         for (let n = marksStartColumn; n < gpaStartColumn; n++) {
             var nCols = coursesList.length * courseColumnStep;
@@ -167,7 +167,7 @@ function genResultFiles(resultsData, filename) {
 
         for (let n = 0; n < marksData.length; n++) {
 
-            ws.row(marksStartRow + n).setHeight(20);
+            ws.row(marksStartRow + n).setHeight(18);
 
             ws.cell(marksStartRow + n, 1).number(n + 1).style(student_dataStyle);
             ws.cell(marksStartRow + n, 2).number(marksData[n].Index).style(student_dataStyle);
@@ -191,7 +191,7 @@ function genResultFiles(resultsData, filename) {
                 ws.cell(marksStartRow + n, gpaStartColumn + 1)
                     .number(marksData[n].CGPA)
                     .style(gpaStyle);
-            }else {
+            } else {
                 ws.cell(marksStartRow + n, gpaStartColumn + 1).style(gpaStyle);
             }
             // if (marksData[n].rec) {
@@ -243,14 +243,14 @@ function genResultFiles(resultsData, filename) {
                     var pr = marksData[n][cid + "-PR"]
                     var ec = marksData[n][cid + "-EC"]
                     let mkg = AssignGrade(ex, cw, pr, ec, cwFraction, exFraction)
-                    
-                    if(ex === null && cw === null && pr === null && ec === null){
-                        mkg = {total: undefined, grade: 'NT'};
+
+                    if (ex === null && cw === null && pr === null && ec === null) {
+                        mkg = { total: undefined, grade: 'NT' };
                         // console.log([ex,cw,pr,ec,exFraction, cwFraction], '|||||||', mkg)
-                    }else{
+                    } else {
                         // console.log([ex,cw,pr,ec,exFraction, cwFraction], '=======>', mkg)
                     }
-                    
+
                     if (mkg.grade)
                         ws.cell(marksStartRow + n, marksStartColumn + m * courseColumnStep + MeetingResult)
                             .string(mkg.grade)
@@ -338,7 +338,7 @@ function genResultFiles(resultsData, filename) {
             },
         });
         var studentNameStyle = wb.createStyle({
-            font: { name: 'Sakkal Majalla', size: 10, bold: true },
+            font: { name: 'Traditional Arabic', size: 12, bold: false },
             alignment: { vertical: 'center', horizontal: 'right', indent: 1 },
             border: borderx
         })
@@ -349,7 +349,7 @@ function genResultFiles(resultsData, filename) {
         });
         // Number Formatting: https://exceljet.net/custom-number-formats
         var marksStyle = wb.createStyle({
-            font: { color: "black", size: 9, name: 'Calibri' },
+            font: { color: "black", size: 10, name: 'Times New Roman' },
             border: borderx,
             numberFormat: '#',
             alignment: { horizontal: 'center', vertical: 'center' }
@@ -364,17 +364,17 @@ function genResultFiles(resultsData, filename) {
 
         var failedMarkStyle = wb.createStyle({
             fill: { type: 'pattern', patternType: 'solid', fgColor: '#FFC7CE', bgColor: "#FFC7CE", },
-            font: { color: "black", size: 10, name: 'Calibri', bold: true },
+            font: { color: "black", size: 10, name: 'Times New Roman', bold: true },
         });
 
         var DMarkStyle = wb.createStyle({
             fill: { type: 'pattern', patternType: 'solid', fgColor: '#FFE699', bgColor: "FFE699", },
-            font: { color: "black", size: 10, name: 'Calibri', bold: true },
+            font: { color: "black", size: 10, name: 'Times New Roman', bold: true },
         });
 
         var ABMarkStyle = wb.createStyle({
             fill: { type: 'pattern', patternType: 'solid', fgColor: '#9BC2E6', bgColor: "9BC2E6", },
-            font: { color: "black", size: 10, name: 'Calibri', bold: true },
+            font: { color: "black", size: 10, name: 'Times New Roman', bold: true },
         });
 
         var BadRecStyle = wb.createStyle({

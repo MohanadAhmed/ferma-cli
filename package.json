@@ -9,6 +9,7 @@
   "author": "Mohanad Ahmed",
   "license": "ISC",
   "dependencies": {
+    "canvas": "^2.6.1",
     "dotenv": "^8.2.0",
     "excel4node": "github:MohanadAhmed/excel4node",
     "msnodesqlv8": "^1.1.8",

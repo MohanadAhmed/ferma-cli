@@ -6,6 +6,7 @@ if(env_res.error){
 const dbReadResultData = require('./dbReadResultData')
 const { sql } = require('./dbConn')
 const genResultFiles = require('./genResultFiles')
+const processRecommendation = require('./processRecommendation')
 
 console.log(genResultFiles)
 
@@ -22,16 +23,17 @@ async function getData(){
     //     AllDisciplines: false
     // });
     var xdata = await dbReadResultData({
-        YearId: 2018, 
-        GradeId: 5,
+        YearId: 2017, 
+        GradeId: 2,
         SemesterId: 2,
-        DepartmentId: 3,
+        DepartmentId: 4,
         AllDepartments: false,
-        StudentDepartmentId: 3,
+        StudentDepartmentId: 4,
         AllStudentDepartments: false,
-        DisciplineId: 4,
-        AllDisciplines: false
+        DisciplineId: 0,
+        AllDisciplines: true
     });
+
     require('fs').writeFileSync('data2.json.log', JSON.stringify(xdata, null, 2))
     genResultFiles(xdata, 'test.xlsx');
     sql.close()

@@ -15,11 +15,6 @@ function result_sql_query(opts) {
 
 	var prevGPAs = prevGrades.map((g) => {return `GPA${g}`}).join(', ')
 
-	// console.log(gpas_cols_n_1)
-	// console.log(gpas_columns)
-	// console.log(cgpaFormula)
-	// process.exit()
-	
     const qry = `WITH CList AS (
 	SELECT OC.CourseId, CourseCode, TitleEnglish, CreditHours, CourseworkFraction, ExamFraction
 	FROM CourseDisciplines AS CD 
@@ -27,10 +22,14 @@ function result_sql_query(opts) {
 		INNER JOIN Courses ON (OC.CourseId = Courses.Id)
 	WHERE CD.YearId = ${YearId} AND CD.GradeId = ${GradeId} AND CD.SemesterId <= ${SemesterId} AND DisciplineId = ${SDisciplineId}
 ), SList AS (
-	SELECT StudentId, [Index], [UnivNo], NameArabic
-	FROM 
-		BatchEnrollments LEFT JOIN Students ON (BatchEnrollments.StudentId = Students.Id)
-	WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND DepartmentId = ${SDepartmentId}
+	SELECT S.StudentId, [Index], [UnivNo], Students.NameArabic, EnrollmentTypes.NameEnglish As Enrollment
+	FROM SemesterBatchEnrollments AS S
+		INNER JOIN BatchEnrollments AS B 
+			ON (S.YearId = B.YearId AND S.GradeId = B.GradeId AND S.DepartmentId = B.DepartmentId AND S.StudentId = B.StudentId)
+		INNER JOIN Students ON (S.StudentId = Students.Id)
+		INNER JOIN EnrollmentTypes ON (EnrollmentTypes.Id = B.EnrollmentTypeId)
+	WHERE S.YearId = ${YearId} AND S.GradeId = ${GradeId} AND S.DepartmentId = ${SDepartmentId} AND 
+		S.DisciplineId = ${SDisciplineId} AND S.SemesterId = ${SemesterId}
 ), MarksList AS (
 	SELECT StudentId, CourseId, CWMark, ExamMark, (COALESCE(CWMark,0) + ExamMark) As Total, CAST(Present AS INT) AS PR, CAST(Excuse AS INT) AS Exc
 	FROM MarksExamCW
