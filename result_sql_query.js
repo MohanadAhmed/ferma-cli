@@ -15,6 +15,23 @@ function result_sql_query(opts) {
 
 	var prevGPAs = prevGrades.map((g) => {return `GPA${g}`}).join(', ')
 
+	var cgpasTable_query = `, PGPAsList AS (
+	SELECT ROW_NUMBER() OVER (PARTITION BY StudentId, GradeId ORDER BY YearId DESC, Turn DESC) AS RNo, *
+	FROM (
+		SELECT *, 1 As Turn FROM GPAwRecomm WHERE StudentId IN (SELECT StudentId FROM SList)
+		UNION
+		SELECT *, 2 As Turn FROM SubSuppGPAwRecomm WHERE StudentId IN (SELECT StudentId FROM SList)
+	) AS Src
+), GPAsTable AS (
+	SELECT StudentId, ${gpas_columns}
+	FROM (
+		SELECT StudentId, GradeId, GPA FROM PGPAsList
+	) As Src PIVOT (
+		MAX(GPA)
+		FOR GradeId IN (${gpas_cols_n_1})
+	) As PivDest
+)`
+
     const qry = `WITH CList AS (
 	SELECT OC.CourseId, CourseCode, TitleEnglish, CreditHours, CourseworkFraction, ExamFraction
 	FROM CourseDisciplines AS CD 
@@ -33,7 +50,7 @@ function result_sql_query(opts) {
 ), MarksList AS (
 	SELECT StudentId, CourseId, CWMark, ExamMark, (COALESCE(CWMark,0) + ExamMark) As Total, CAST(Present AS INT) AS PR, CAST(Excuse AS INT) AS Exc
 	FROM MarksExamCW
-	WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND DepartmentId = ${SDepartmentId}
+	WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND DepartmentId = ${SDepartmentId} AND StudentId IN (SELECT StudentId FROM SList)
 ), GPAsList AS (
 	SELECT StudentId, SUM(MarksList.Total*CreditHours) / (10 * SUM(CreditHours)) AS GPA, SUM(CASE 
 		WHEN (PR = 0) AND (Exc = 0) AND (ExamMark Is NULL) THEN 0
@@ -88,24 +105,10 @@ function result_sql_query(opts) {
 		MAX(Exc) 
 		FOR CourseId IN (${crs_ids})
 	) As PivDest1
-), PGPAsList AS (
-	SELECT ROW_NUMBER() OVER (PARTITION BY StudentId, GradeId ORDER BY YearId DESC, Turn DESC) AS RNo, *
-	FROM (
-		SELECT *, 1 As Turn FROM GPAwRecomm WHERE StudentId IN (SELECT StudentId FROM SList)
-		UNION
-		SELECT *, 2 As Turn FROM SubSuppGPAwRecomm WHERE StudentId IN (SELECT StudentId FROM SList)
-	) AS Src
-), GPAsTable AS (
-	SELECT StudentId, ${gpas_columns}
-	FROM (
-		SELECT StudentId, GradeId, GPA FROM PGPAsList
-	) As Src PIVOT (
-		MAX(GPA)
-		FOR GradeId IN (${gpas_cols_n_1})
-	) As PivDest
-) SELECT SList.StudentId, SList.[Index], SList.UnivNo, SList.NameArabic,
+) ${(GradeId > 1) ? cgpasTable_query : ''} 
+SELECT SList.StudentId, SList.[Index], SList.UnivNo, SList.NameArabic,
 	${crs_tot}, 
-	ABCount, (CASE WHEN ABCount = 0 THEN GPA ELSE NULL END) AS GPA, ${prevGPAs}, 
+	ABCount, (CASE WHEN ABCount = 0 THEN GPA ELSE NULL END) AS GPA, ${(GradeId > 1) ? prevGPAs + ',' : ' '} 
 	(CASE WHEN ABCount = 0 THEN ${cgpaFormula} ELSE NULL END) AS CGPA
 FROM 
 	SList 
@@ -114,7 +117,7 @@ FROM
 	INNER JOIN PTable ON (SList.StudentId = PTable.StudentId)
 	INNER JOIN ETable ON (SList.StudentId = ETable.StudentId)
 	INNER JOIN GPAsList ON (SList.StudentId = GPAsList.StudentId)
-	INNER JOIN GPAsTable ON (SList.StudentId = GPAsTable.StudentId)
+	${GradeId > 1 ? 'INNER JOIN GPAsTable ON (SList.StudentId = GPAsTable.StudentId)': ''}
 ORDER BY dbo.fn_IndexOrder(SList.[Index], ${SDepartmentId})`;
     return qry;
 };

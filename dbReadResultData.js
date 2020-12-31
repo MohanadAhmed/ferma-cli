@@ -104,6 +104,8 @@ async function dbReadResultData(opts) {
                 crs_ids, crs_cws, crs_exs, crs_prs, crs_ecs, crs_tot
             })
 
+            // require('fs').writeFileSync('query.log', results_query)
+
             let mdata = (await req.query(results_query));
 
             var registrar = adminHeads.find(a => { return a.PositionTitleEnglish == 'Faculty Registrar' })
@@ -136,7 +138,8 @@ async function dbReadResultData(opts) {
         return resultsData;
     } catch (err) {
         console.error('getDisciplines: ', err)
-        return null;
+        // return null;
+        process.exit();
     } finally {
         // process.exit()
     }

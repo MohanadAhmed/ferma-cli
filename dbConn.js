@@ -5,12 +5,13 @@ const config = {
     password: process.env.DBPASSWORD,
     server: process.env.DBSERVERNAME,
     database: process.env.DBNAME,
+    requestTimeout: 20000,
     options: {
         enableArithAbort: true,
     }
 }
 
-const localConnString = "server=.\\sqlferma;Database=AcademicResultsDB;Trusted_Connection=Yes;Driver={SQL Server Native Client 11.0}";
+const localConnString = "server=.\\sqlferma;Database=AcademicResultsDB;Trusted_Connection=Yes;Driver={SQL Server Native Client 11.0};Connection Timeout=30";
 
 const sqlConn = new sql.connect(localConnString)
   .then(pool => {
