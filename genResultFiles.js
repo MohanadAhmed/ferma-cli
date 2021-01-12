@@ -32,6 +32,7 @@ function genResultFiles(resultsData, filename) {
             Year: `${res.YearId}/${res.YearId + 1}`,
             Grade: res.GradeId,
             Semester: res.SemesterId,
+            SubSuppResults: res.SubSuppResults,
             AdminDepartment: res.AdminDepartment,
             AdminDepartmentArabic: res.AdminDepartmentArabic,
             StudentDepartment: res.StudentDepartment,
@@ -61,12 +62,12 @@ function genResultFiles(resultsData, filename) {
 جامعة الخرطوم - كلية الهندسة
 قسم ${DepartmentHeadTitle}
 ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Grade - 1]}` +
-`${resAdminData.Discipline.includes("Non-Specialized") ? '' : '\n(' + resAdminData.DisciplineArabic + ')'}`
+            `${resAdminData.Discipline.includes("Non-Specialized") ? '' : '\n(' + resAdminData.DisciplineArabic + ')'}`
             + '\n(خاضعة لإجازة مجلس الأساتذة)';
     }
 
     function GenerateBoardResultWorksheet(coursesList, marksData, resAdminData) {
-        // console.log(resAdminData)
+        const { SubSuppResults } = resAdminData;
         sheetName = resAdminData.sheetName;
         var MeetingResult = resAdminData.MeetingResult;
 
@@ -169,16 +170,38 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
 
             ws.row(marksStartRow + n).setHeight(18);
 
-            ws.cell(marksStartRow + n, 1).number(n + 1).style(student_dataStyle);
-            ws.cell(marksStartRow + n, 2).number(marksData[n].Index).style(student_dataStyle);
-            if (marksData[n].UnivNo) ws.cell(marksStartRow + n, 3).string(marksData[n].UnivNo).style(student_dataStyle);
-            else ws.cell(marksStartRow + n, 3).style(student_dataStyle);
+            if (!SubSuppResults) {
+                ws.cell(marksStartRow + n, 1).number(n + 1).style(student_dataStyle);
+                ws.cell(marksStartRow + n, 2).number(marksData[n].Index).style(student_dataStyle);
+                if (marksData[n].UnivNo) ws.cell(marksStartRow + n, 3).string(marksData[n].UnivNo).style(student_dataStyle);
+                else ws.cell(marksStartRow + n, 3).style(student_dataStyle);
 
-            var namePlaceholder = marksData[n].NameArabic; //? studentsList[n].name : 'محمد عبدالله جادالحق علي' + n;
+                var namePlaceholder = marksData[n].NameArabic;
+                ws.cell(marksStartRow + n, 4)
+                    .string(namePlaceholder)
+                    .style(studentNameStyle);
+            } else {
+                if (marksData[n].Turn == 1) {
+                    // We either extend to 2 or three rows. Three if after two steps the numebr is three
+                    let studBlock = 1;
+                    if (marksData[n + 2]?.Turn == 3) studBlock = 2;
 
-            ws.cell(marksStartRow + n, 4)
-                .string(namePlaceholder)
-                .style(studentNameStyle);
+                    ws.cell(marksStartRow + n, 1, marksStartRow + n + studBlock, 1, true).number(n + 1).style(student_dataStyle);
+                    ws.cell(marksStartRow + n, 2, marksStartRow + n + studBlock, 2, true).number(marksData[n].Index).style(student_dataStyle);
+                    if (marksData[n].UnivNo)
+                        ws.cell(marksStartRow + n, 3, marksStartRow + n + studBlock, 3, true)
+                            .string(marksData[n].UnivNo).style(student_dataStyle);
+                    else
+                        ws.cell(marksStartRow + n, 3, marksStartRow + n + studBlock, 3, true)
+                            .style(student_dataStyle);
+
+                    var namePlaceholder = marksData[n].NameArabic; //? studentsList[n].name : 'محمد عبدالله جادالحق علي' + n;
+
+                    ws.cell(marksStartRow + n, 4, marksStartRow + n + studBlock, 4, true)
+                        .string(namePlaceholder)
+                        .style(studentNameStyle);
+                }
+            }
 
             if (marksData[n].GPA) {
                 ws.cell(marksStartRow + n, gpaStartColumn)
@@ -245,7 +268,7 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
                     let mkg = AssignGrade(ex, cw, pr, ec, cwFraction, exFraction)
 
                     if (ex === null && cw === null && pr === null && ec === null) {
-                        mkg = { total: undefined, grade: 'NT' };
+                        mkg = { total: undefined, grade: (marksData[n].Turn == 1) ? 'NT' : undefined };
                         // console.log([ex,cw,pr,ec,exFraction, cwFraction], '|||||||', mkg)
                     } else {
                         // console.log([ex,cw,pr,ec,exFraction, cwFraction], '=======>', mkg)
@@ -363,17 +386,17 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
         };
 
         var failedMarkStyle = wb.createStyle({
-            fill: { type: 'pattern', patternType: 'solid', fgColor: '#FFC7CE', bgColor: "#FFC7CE", },
+            // fill: { type: 'pattern', patternType: 'solid', fgColor: '#FFC7CE', bgColor: "#FFC7CE", },
             font: { color: "black", size: 10, name: 'Times New Roman', bold: true },
         });
 
         var DMarkStyle = wb.createStyle({
-            fill: { type: 'pattern', patternType: 'solid', fgColor: '#FFE699', bgColor: "FFE699", },
+            // fill: { type: 'pattern', patternType: 'solid', fgColor: '#FFE699', bgColor: "FFE699", },
             font: { color: "black", size: 10, name: 'Times New Roman', bold: true },
         });
 
         var ABMarkStyle = wb.createStyle({
-            fill: { type: 'pattern', patternType: 'solid', fgColor: '#9BC2E6', bgColor: "9BC2E6", },
+            // fill: { type: 'pattern', patternType: 'solid', fgColor: '#9BC2E6', bgColor: "9BC2E6", },
             font: { color: "black", size: 10, name: 'Times New Roman', bold: true },
         });
 

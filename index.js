@@ -10,28 +10,29 @@ const processRecommendation = require('./processRecommendation')
 
 async function getData() {
     var t_start = Date.now();
-    // var xdata = await dbReadResultData({
-    //     YearId: 2018, 
-    //     GradeId: 1,
-    //     SemesterId: 2,
-    //     DepartmentId: 9,
-    //     AllDepartments: false,
-    //     StudentDepartmentId: 0,
-    //     AllStudentDepartments: true,
-    //     DisciplineId: 1,
-    //     AllDisciplines: false
-    // });
     var xdata = await dbReadResultData({
-        YearId: 2017,
-        GradeId: 5,
+        YearId: 2016, 
+        GradeId: 1,
         SemesterId: 2,
-        DepartmentId: 5,
-        AllDepartments: false,
-        StudentDepartmentId: 5,
-        AllStudentDepartments: false,
+        SubSuppResults: true,
+        DepartmentId: 0,
+        AllDepartments: true,
+        StudentDepartmentId: 0,
+        AllStudentDepartments: true,
         DisciplineId: 0,
         AllDisciplines: true
     });
+    // var xdata = await dbReadResultData({
+    //     YearId: 2017,
+    //     GradeId: 5,
+    //     SemesterId: 2,
+    //     DepartmentId: 5,
+    //     AllDepartments: false,
+    //     StudentDepartmentId: 5,
+    //     AllStudentDepartments: false,
+    //     DisciplineId: 0,
+    //     AllDisciplines: true
+    // });
 
     // require('fs').writeFileSync('data2.json.log', JSON.stringify(xdata, null, 2))
     genResultFiles(xdata, 'test.xlsx');

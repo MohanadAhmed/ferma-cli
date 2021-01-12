@@ -1,7 +1,9 @@
 const { sqlConn } = require('./dbconn')
-const result_sql_query = require('./result_sql_query')
+const result_sql_query = require('./result_sql_query');
+const subsupp_result_sql_query = require('./subsupp_result_sql_query');
 
 async function dbReadResultData(opts) {
+    const { SubSuppResults } = opts;
     const { YearId, GradeId, SemesterId, DepartmentId, AllDepartments } = opts;
     const { StudentDepartmentId, AllStudentDepartments, DisciplineId, AllDisciplines } = opts;
 
@@ -95,16 +97,24 @@ async function dbReadResultData(opts) {
                 return '[' + cid + '-CW], [' + cid + '-EX], [' + cid + '-PR], [' + cid + '-EC]'
             }).join(', ')
 
-            const results_query = result_sql_query({
+            const results_query = SubSuppResults ? subsupp_result_sql_query({
                 YearId: ddpair['YearId'],
                 GradeId: ddpair['GradeId'],
                 SemesterId: ddpair['SemesterId'],
                 SDepartmentId: sDepartmentId,
                 SDisciplineId: sDisciplineId,
                 crs_ids, crs_cws, crs_exs, crs_prs, crs_ecs, crs_tot
-            })
+            }) : result_sql_query({
+                YearId: ddpair['YearId'],
+                GradeId: ddpair['GradeId'],
+                SemesterId: ddpair['SemesterId'],
+                SDepartmentId: sDepartmentId,
+                SDisciplineId: sDisciplineId,
+                crs_ids, crs_cws, crs_exs, crs_prs, crs_ecs, crs_tot
+            }) 
 
             // require('fs').writeFileSync('query.log', results_query)
+            // process.exit()
 
             let mdata = (await req.query(results_query));
 
@@ -116,6 +126,7 @@ async function dbReadResultData(opts) {
                 YearId: ddpair['YearId'],
                 GradeId: ddpair['GradeId'],
                 SemesterId: ddpair['SemesterId'],
+                SubSuppResults,
                 AdminDepartment: adminDisc['Department'],
                 AdminDepartmentArabic: adminDisc['DepartmentArabic'],
                 StudentDepartment: ddpair['SDepartment'],
@@ -128,10 +139,10 @@ async function dbReadResultData(opts) {
                 Courses: crsLx,
                 MarksData: mdata.recordsets[0],
                 Signatures: [
-                    {Name: adminDisc['HeadNameArabic'], Position: 'رئيس قسم ' + adminDisc['DepartmentArabic']},
-                    {Name: registrar.NameArabic, Position: registrar.PositionTitleArabic},
-                    {Name: deputyDean.NameArabic, Position: deputyDean.PositionTitleArabic},
-                    {Name: dean.NameArabic, Position: dean.PositionTitleArabic},
+                    { Name: adminDisc['HeadNameArabic'], Position: 'رئيس قسم ' + adminDisc['DepartmentArabic'] },
+                    { Name: registrar.NameArabic, Position: registrar.PositionTitleArabic },
+                    { Name: deputyDean.NameArabic, Position: deputyDean.PositionTitleArabic },
+                    { Name: dean.NameArabic, Position: dean.PositionTitleArabic },
                 ]
             })
         }
