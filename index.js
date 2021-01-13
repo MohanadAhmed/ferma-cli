@@ -7,6 +7,7 @@ const dbReadResultData = require('./dbReadResultData')
 const { sql } = require('./dbConn')
 const genResultFiles = require('./genResultFiles')
 const processRecommendation = require('./processRecommendation')
+const test_ACASummary = require('./test_ACASummary')
 
 async function getData() {
     var t_start = Date.now();
@@ -45,7 +46,9 @@ async function getData_SubSupp(){
 
 }
 
-getData()
+test_ACASummary();
+
+// getData()
 
 // sqlConn.then((val) => {
 //     val.close();
