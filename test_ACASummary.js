@@ -19,7 +19,7 @@ const aca_data = {
     DeputyDeanName: 'د. مجدي محمد زمراوي',
     DeanName: 'د.علي محمد علي السيوري',
 
-    'HonorsGraduates': 'Honours',
+    'HonorsGraduates': 'RegularGrads',
 
     dataTables: {
         RegStudents: {

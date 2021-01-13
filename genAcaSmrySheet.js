@@ -13,7 +13,6 @@ function genAcaSmrySheet(wb, aca_data) {
         },
         printOptions: {
             'centerHorizontal': true,
-            'centerVertical': true,
         },
     })
 
@@ -23,7 +22,7 @@ function genAcaSmrySheet(wb, aca_data) {
 
     SetColumnWidths();
     TitleBlock(); crow += 12;
-    if (aca_data.HonorsGraduates) {
+    if (aca_data.HonorsGraduates == 'Full') {
         TableRegularStudents();
         crow += 1;
         TableRegusarStudentsHonours();
@@ -39,6 +38,15 @@ function genAcaSmrySheet(wb, aca_data) {
         GraphExternalStudHonours();
         BoardOpinion();
         crow += 3;
+        Signatures();
+    } else if (aca_data.HonorsGraduates == 'RegularGrads') {
+        TableRegularStudents();
+        TableRegusarStudentsHonours();
+        crow += 1;
+        Signatures();
+        GraphRegularStuds();
+        genGraph('مرتبة الشرف (نظاميون)', crow, 15, 33, 37)
+        BoardOpinion();
         Signatures();
     } else {
         TableRegularStudents();
