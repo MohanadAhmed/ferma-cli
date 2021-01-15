@@ -8,6 +8,7 @@ const { sql } = require('./dbConn')
 const genResultFiles = require('./genResultFiles')
 const processRecommendation = require('./processRecommendation')
 const test_ACASummary = require('./test_ACASummary')
+const test_ACA_FromDB = require('./test_ACA_FromDB')
 
 async function getData() {
     var t_start = Date.now();
@@ -46,7 +47,19 @@ async function getData_SubSupp(){
 
 }
 
-test_ACASummary();
+// test_ACASummary();
+test_ACA_FromDB({
+    YearId: 2018, 
+    GradeId: 4,
+    SemesterId: 2,
+    SubSuppResults: false,
+    DepartmentId: 0,
+    AllDepartments: true,
+    StudentDepartmentId: 0,
+    AllStudentDepartments: true,
+    DisciplineId: 0,
+    AllDisciplines: true
+})
 
 // getData()
 
