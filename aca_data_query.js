@@ -1,4 +1,5 @@
 function aca_data_query(opts) {
+    const { ExternalsCount } = opts;
     const { YearId, GradeId, SemesterId, SDepartmentId, SAllDepartments } = opts;
 
     const regStuds_query =
@@ -7,7 +8,7 @@ function aca_data_query(opts) {
     FROM GPAwRecomm AS g INNER JOIN BatchEnrollments AS b ON 
         (g.YearId = b.YearId AND g.GradeId = b.GradeId AND g.StudentId = b.StudentId AND g.DepartmentId = b.DepartmentId)
     WHERE (g.YearId <= ${YearId} AND g.YearId > (${YearId} - 3)) AND g.GradeId = ${GradeId} AND 
-        g.DepartmentId = ${SDepartmentId}
+        g.DepartmentId = ${SDepartmentId} AND NOT (EnrollmentTypeId = 3)
     group by b.YearId, YearRecommId, EnrollmentTypeId
 ), XCnts AS (
     SELECT YearId, RecommendationTypes.Id AS RecId,
@@ -141,8 +142,13 @@ VALUES
 (VALUES (1, N'مرتبة الشرف اللأولى'), (2, N'مرتبة الشرف الثانية - القسم الأول'), (3, N'مرتبة الشرف الثانية - القسم الثاني'), (4, N'مرتبة الشرف الثالثة')) V(Nm, Label) 
 LEFT JOIN Xcnts ON (V.Nm = Xcnts.CumulativeRecommId)
 `;
-
-    return (regStuds_query + regHonors_query + extStuds_query + extHonours_query)
+    if (GradeId == 5 && ExternalsCount == 0) {
+        return (regStuds_query + regHonors_query)
+    } else if (GradeId == 5 && ExternalsCount > 0) {
+        return (regStuds_query + regHonors_query + extStuds_query + extHonours_query)
+    } else {
+        return (regStuds_query + extStuds_query);
+    }
 }
 
 module.exports = aca_data_query;

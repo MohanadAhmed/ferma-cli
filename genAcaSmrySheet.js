@@ -1,7 +1,6 @@
 const xl = require('excel4node')
 
-function genAcaSmrySheet(wb, aca_data) {
-    var sheetName = 'ACA-' + aca_data.DepartmentEnglish + '-' + aca_data.DisciplineEnglish;
+function genAcaSmrySheet(wb, sheetName, aca_data) {
     var ws = wb.addWorksheet(sheetName, {
         pageSetup: {
             paperSize: 'A4_PAPER',
@@ -60,6 +59,32 @@ function genAcaSmrySheet(wb, aca_data) {
     function getTitle(xtitle) {
         vTitle = BigLabels[tabNum++] + ': ' + xtitle;
         return vTitle;
+    }
+    function genSumFormulae_offset(frow, srow, erow) {
+        var sumStyle = {
+            font: { bold: true, size: 14 },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+                left: { style: 'medium', color: 'black' },
+                right: { style: 'medium', color: 'black' },
+                top: { style: 'medium', color: 'black' },
+                bottom: { style: 'medium', color: 'black' }
+            }
+        };
+        ws.cell(frow, 2).string('المجموع').style(sumStyle)
+        var s1 = xl.getExcelCellRef(srow + 2, 3); var e1 = xl.getExcelCellRef(erow, 3);
+        var s2 = xl.getExcelCellRef(srow + 2, 4); var e2 = xl.getExcelCellRef(erow, 4);
+        var s3 = xl.getExcelCellRef(srow + 2, 5); var e3 = xl.getExcelCellRef(erow, 5);
+        var s4 = xl.getExcelCellRef(srow + 2, 6); var e4 = xl.getExcelCellRef(erow, 6);
+        var s5 = xl.getExcelCellRef(srow + 2, 7); var e5 = xl.getExcelCellRef(erow, 7);
+        var s6 = xl.getExcelCellRef(srow + 2, 8); var e6 = xl.getExcelCellRef(erow, 8);
+
+        ws.cell(frow, 3).formula(`SUM(${s1}:${e1})`).style(sumStyle)
+        ws.cell(frow, 4).formula(`SUM(${s2}:${e2}) - ${xl.getExcelCellRef(erow - 2, 4)}`).style(sumStyle)
+        ws.cell(frow, 5).formula(`SUM(${s3}:${e3})`).style(sumStyle)
+        ws.cell(frow, 6).formula(`SUM(${s4}:${e4}) - ${xl.getExcelCellRef(erow - 2, 6)}`).style(sumStyle)
+        ws.cell(frow, 7).formula(`SUM(${s5}:${e5})`).style(sumStyle)
+        ws.cell(frow, 8).formula(`SUM(${s6}:${e6}) - ${xl.getExcelCellRef(erow - 2, 8)}`).style(sumStyle)
     }
     function genSumFormulae(frow, srow, erow) {
         var sumStyle = {
@@ -156,7 +181,7 @@ function genAcaSmrySheet(wb, aca_data) {
         GenerateACADataTable(ws, crow + 1, aca_data, regStud)
         genRegStudentsFormulae(ws, crow + 3)
         crow += Object.keys(regStud).length + 4;
-        genSumFormulae(crow, crow - 11, crow - 1)
+        genSumFormulae_offset(crow, crow - 11, crow - 1)
         crow += 1
     }
     function TableRegusarStudentsHonours() {
@@ -166,7 +191,7 @@ function genAcaSmrySheet(wb, aca_data) {
         GenerateACADataTable(ws, crow + 1, aca_data, regStudHonours)
         genHonStudentsFormulae(ws, crow + 3)
         crow += Object.keys(regStudHonours).length + 4;
-        genSumFormulae(crow, crow - 5, crow - 1)
+        genSumFormulae(crow, crow - 4, crow - 1)
         crow += 1
     }
     function TableExternalStudents() {
@@ -361,7 +386,8 @@ function genRegStudentsFormulae(ws, srow) {
             right: { style: 'medium', color: 'black' },
             top: { style: 'thin', color: 'black' },
             bottom: { style: 'thin', color: 'black' }
-        }
+        },
+        numberFormat: 2
     };
     var hidden_xsty = {
         font: { bold: true, color: 'FFFFFF' },
@@ -370,7 +396,8 @@ function genRegStudentsFormulae(ws, srow) {
             right: { style: 'medium', color: 'black' },
             top: { style: 'thin', color: 'black' },
             bottom: { style: 'thin', color: 'black' }
-        }
+        },
+        numberFormat: 2
     };
 
 
@@ -382,11 +409,11 @@ function genRegStudentsFormulae(ws, srow) {
         for (let n = 1; n <= 11; n++) {
             var r1 = xl.getExcelCellRef(srow + n, cx - 1);
             if (n == 2 || n == 9) {
-                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, ROUND((${r1}/${rtot})*100,2))`).style(xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, (${r1}/${rtot})*100)`).style(xsty)
             } else if (n == 1) {
-                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, ROUND((${r1}/${rtot})*100,2))`).style(hidden_xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, (${r1}/${rtot})*100)`).style(hidden_xsty)
             } else {
-                ws.cell(srow + n, cx).formula(`IF(${rexam}=0, 0, ROUND((${r1}/${rexam})*100,2))`).style(xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rexam}=0, 0, (${r1}/${rexam})*100)`).style(xsty)
             }
         }
     }
@@ -400,7 +427,8 @@ function genHonStudentsFormulae(ws, srow) {
             right: { style: 'medium', color: 'black' },
             top: { style: 'thin', color: 'black' },
             bottom: { style: 'thin', color: 'black' }
-        }
+        },
+        numberFormat: 2
     };
     var hidden_xsty = {
         font: { bold: true, color: 'FFFFFF' },
@@ -418,9 +446,9 @@ function genHonStudentsFormulae(ws, srow) {
         for (let n = 1; n <= 5; n++) {
             var r1 = xl.getExcelCellRef(srow + n, cx - 1);
             if (n == 1) {
-                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, ROUND((${r1}/${rtot})*100,2))`).style(hidden_xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, (${r1}/${rtot})*100)`).style(hidden_xsty)
             } else {
-                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, ROUND((${r1}/${rtot})*100,2))`).style(xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, (${r1}/${rtot})*100)`).style(xsty)
             }
         }
     }
@@ -434,7 +462,8 @@ function genExtStudentsFormulae(ws, srow) {
             right: { style: 'medium', color: 'black' },
             top: { style: 'thin', color: 'black' },
             bottom: { style: 'thin', color: 'black' }
-        }
+        },
+        numberFormat: 2
     };
     var hidden_xsty = {
         font: { bold: true, color: 'FFFFFF' },
@@ -443,7 +472,8 @@ function genExtStudentsFormulae(ws, srow) {
             right: { style: 'medium', color: 'black' },
             top: { style: 'thin', color: 'black' },
             bottom: { style: 'thin', color: 'black' }
-        }
+        },
+        numberFormat: 2
     };
 
     colsx = [4, 6, 8];
@@ -454,11 +484,11 @@ function genExtStudentsFormulae(ws, srow) {
         for (let n = 1; n <= 9; n++) {
             var r1 = xl.getExcelCellRef(srow + n, cx - 1);
             if (n == 2) {
-                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, ROUND((${r1}/${rtot})*100,2))`).style(xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, (${r1}/${rtot})*100)`).style(xsty)
             } else if (n == 1) {
-                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, ROUND((${r1}/${rtot})*100,2))`).style(hidden_xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rtot}=0, 0, (${r1}/${rtot})*100)`).style(hidden_xsty)
             } else {
-                ws.cell(srow + n, cx).formula(`IF(${rexam}=0, 0, ROUND((${r1}/${rexam})*100,2))`).style(xsty)
+                ws.cell(srow + n, cx).formula(`IF(${rexam}=0, 0, (${r1}/${rexam})*100)`).style(xsty)
             }
         }
     }

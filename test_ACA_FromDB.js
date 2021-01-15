@@ -3,6 +3,8 @@ const genAcaSmrySheet = require('./genAcaSmrySheet')
 const { sqlConn } = require('./dbconn')
 const aca_data_query = require('./aca_data_query')
 
+const grades = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس'];
+
 async function test_ACA_FromDB(opts) {
     var wb = new xl.Workbook({
         defaultFont: {
@@ -22,15 +24,14 @@ async function test_ACA_FromDB(opts) {
             fullCalculationOnLoad: true
         }
     })
-    
+
     const { SubSuppResults } = opts;
     const { YearId, GradeId, SemesterId, DepartmentId, AllDepartments } = opts;
     const { StudentDepartmentId, AllStudentDepartments, DisciplineId, AllDisciplines } = opts;
 
     console.log('ACA Summary generation from Database ...')
 
-    const depts_disciplines_query =
-        `SELECT DISTINCT YearId, GradeId, SemesterId, 
+    const depts_disciplines_query = `SELECT DISTINCT YearId, GradeId, SemesterId, 
     SemesterBatchEnrollments.DepartmentId, SemesterBatchEnrollments.DisciplineId, 
     Departments.NameEnglishShort AS 'SDepartment',
     Departments.NameArabic as SDepartmentArabic,
@@ -40,17 +41,25 @@ FROM SemesterBatchEnrollments
     INNER JOIN Departments ON (SemesterBatchEnrollments.DepartmentId = Departments.Id)
 WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND SemesterId = ${SemesterId} AND DisciplineId IN (
     SELECT Id FROM Disciplines WHERE (DepartmentId = ${DepartmentId} OR (${Number(AllDepartments)}=1))
-) AND (SemesterBatchEnrollments.DepartmentId = ${StudentDepartmentId} OR (${Number(AllStudentDepartments)}=1));`;
+) AND (SemesterBatchEnrollments.DepartmentId = ${StudentDepartmentId} OR (${Number(AllStudentDepartments)}=1));
+`;
+    const extCounts_query = `;WITH ExtCounts AS (
+    SELECT DepartmentId, COUNT(*) AS CNT
+    FROM BatchEnrollments 
+    WHERE YearId = 2018 AND GradeId = 4 AND (DepartmentID = 3 OR (1=1)) AND EnrollmentTypeId = 3
+    GROUP BY DepartmentId
+) SELECT * 
+FROM Departments LEFT JOIN ExtCounts ON (Departments.Id = ExtCounts.DepartmentId)`
 
     const adminHeads_query = `SELECT * FROM AdminHeads;`;
 
-    console.log('Querying for Departments .... ')
     let pool = await sqlConn;
     let req = await pool.request();
-    let res = (await req.query(depts_disciplines_query + adminHeads_query))
+    let res = (await req.query(depts_disciplines_query + adminHeads_query + extCounts_query))
 
     deptdiscs_pairs = res.recordsets[0];
     adminHeads = res.recordsets[1];
+    extCountsDept = res.recordsets[2];
 
     var deptsList = deptdiscs_pairs.filter((v, ind, slf) => {
         return (ind == slf.findIndex((x) => {
@@ -59,43 +68,43 @@ WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND SemesterId = ${SemesterId}
     })
 
     for (dept of deptsList) {
-        let req = await pool.request();
+        const d_extCount = extCountsDept.find(x => (x.DepartmentId == dept.DepartmentId))?.CNT;
         const aca_qry = aca_data_query({
             YearId,
             GradeId,
             SemesterId,
             SDepartmentId: (!AllStudentDepartments) ? StudentDepartmentId : dept.DepartmentId,
-            SAllDepartments: false
+            SAllDepartments: false,
+            ExternalsCount: d_extCount
         });
 
-        const grades = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس'];
         const aca_data = {
             'FacultyName': 'كلية الهندسة',
             'AcademicYear': `${YearId}/${YearId + 1}`,
             'AcademicGrade': grades[GradeId - 1],
-            'Department': dept.SDepartmentArabic,
+            'Department': dept.SDepartmentArabic.replace('المكلف', ''),
             'Discipline': dept.SDiscipline,
             'BoardMeetingNo': 'NNNN/MM',
             'BoardMeetingDate': (new Date()).toLocaleDateString('en-GB', { timeZone: 'Asia/Riyadh' }),
             'DepartmentEnglish': dept.SDepartment,
             'DisciplineEnglish': null,
 
-            'AcademicYear_M_1': '2017/2018',
-            'AcademicYear_M_2': '2016/2017',
+            'AcademicYear_M_1': `${YearId - 1}/${YearId}`,
+            'AcademicYear_M_2': `${YearId - 2}/${YearId - 1}`,
 
             'RegistrarName': adminHeads.find(a => { return a.PositionTitleEnglish == 'Faculty Registrar' }).NameArabic,
             'DeputyDeanName': adminHeads.find(a => { return a.PositionTitleEnglish == 'Deputy Dean for Academic Affairs' }).NameArabic,
             'DeanName': adminHeads.find(a => { return a.PositionTitleEnglish == 'Dean' }).NameArabic,
 
-            'HonorsGraduates': 'Full',
-            dataTables: {
-
-            }
+            'HonorsGraduates': ACA_Type(GradeId, d_extCount),
+            dataTables: {}
         }
 
+        var sheetName = `ACA-${aca_data.DepartmentEnglish || 'All'}-${aca_data.DisciplineEnglish || 'All'}`;
+        console.log('Generating ', sheetName, '...')
         try {
             let res = (await req.query(aca_qry))
-            if (true) {
+            if (aca_data.HonorsGraduates == 'Full') {
                 regStud = res.recordsets[0];
                 regHonr = res.recordsets[1];
                 extStud = res.recordsets[2];
@@ -104,13 +113,18 @@ WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND SemesterId = ${SemesterId}
                 aca_data.dataTables.RegStudentsHonours = ConvertRegHonors(YearId, regHonr);
                 aca_data.dataTables.ExtStudents = ConvertExtStuds(YearId, extStud);
                 aca_data.dataTables.ExtStudentsHonours = ConvertExtHonors(YearId, extHonr);
-                // console.log(aca_data)
-                genAcaSmrySheet(wb, aca_data);
-            } else if (false) {
-
+            } else if (aca_data.HonorsGraduates == 'RegularGrads') {
+                regStud = res.recordsets[0];
+                regHonr = res.recordsets[1];
+                aca_data.dataTables.RegStudents = ConvertRegStuds(YearId, regStud);
+                aca_data.dataTables.RegStudentsHonours = ConvertRegHonors(YearId, regHonr);
             } else {
-
+                regStud = res.recordsets[0];
+                extStud = res.recordsets[1];
+                aca_data.dataTables.RegStudents = ConvertRegStuds(YearId, regStud);
+                aca_data.dataTables.ExtStudents = ConvertExtStuds(YearId, extStud);
             }
+            genAcaSmrySheet(wb, sheetName, aca_data);
         } catch (err) {
             console.error('getDisciplines: ', err)
             require('fs').writeFileSync('query.log', aca_qry)
@@ -124,6 +138,15 @@ WHERE YearId = ${YearId} AND GradeId = ${GradeId} AND SemesterId = ${SemesterId}
         console.log('Done Writing Workbook')
         process.exit()
     })
+    function ACA_Type(GradeId, ExternalsCount) {
+        if (GradeId == 5 && ExternalsCount == 0) {
+            return 'RegularGrads'
+        } else if (GradeId == 5 && ExternalsCount > 0) {
+            return 'Full'
+        } else {
+            return 'Undergrad';
+        }
+    }
 }
 function getRecordArr(res, Num, YearId) {
     const YN0 = YearId.toString()
@@ -134,7 +157,7 @@ function getRecordArr(res, Num, YearId) {
     n0 = z[YN0] ? z[YN0] : 0;
     n1 = z[YN1] ? z[YN1] : 0;
     n2 = z[YN2] ? z[YN2] : 0;
-    
+
     return [n0, n1, n2, z.Label];
 }
 
@@ -169,7 +192,6 @@ function ConvertRegHonors(YearId, res) {
         SecondClassSecond: x3,
         ThirdClass: x4,
     }
-
 }
 function ConvertExtStuds(YearId, res) {
     return {
