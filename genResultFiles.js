@@ -166,6 +166,7 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
             refFormula: MeetingResult ? `'${ws.name}'!$1:$3` : `'${ws.name}'!$1:$3`
         });
 
+        var sub_supp_StudNo = 0;
         for (let n = 0; n < marksData.length; n++) {
 
             ws.row(marksStartRow + n).setHeight(18);
@@ -186,7 +187,7 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
                     let studBlock = 1;
                     if (marksData[n + 2]?.Turn == 3) studBlock = 2;
 
-                    ws.cell(marksStartRow + n, 1, marksStartRow + n + studBlock, 1, true).number(n + 1).style(student_dataStyle);
+                    ws.cell(marksStartRow + n, 1, marksStartRow + n + studBlock, 1, true).number(++sub_supp_StudNo).style(student_dataStyle);
                     ws.cell(marksStartRow + n, 2, marksStartRow + n + studBlock, 2, true).number(marksData[n].Index).style(student_dataStyle);
                     if (marksData[n].UnivNo)
                         ws.cell(marksStartRow + n, 3, marksStartRow + n + studBlock, 3, true)
@@ -217,11 +218,11 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
             } else {
                 ws.cell(marksStartRow + n, gpaStartColumn + 1).style(gpaStyle);
             }
-            // if (marksData[n].rec) {
-            //     ws.cell(marksStartRow + n, gpaStartColumn + 2)
-            //         .string(resultsList[n].rec)
-            //         .style(gpaStyle);
-            // }
+            if (marksData[n].rec) {
+                ws.cell(marksStartRow + n, gpaStartColumn + 2)
+                    .string(marksData[n].rec)
+                    .style(gpaStyle);
+            }
         }
 
         for (let n = 0; n < coursesList.length; n++) {
@@ -275,7 +276,7 @@ ${resultTitle}  ${resAdminData.Year} - المستوى ${g_grades[resAdminData.Gr
                     }
 
                     if (mkg.grade)
-                        ws.cell(marksStartRow + n, marksStartColumn + m * courseColumnStep + MeetingResult)
+                        ws.cell(marksStartRow + n, marksStartColumn + m * courseColumnStep + (MeetingResult ? 1 : 0))
                             .string(mkg.grade)
                             .style(marksStyle);
                 }
@@ -436,6 +437,7 @@ function AssignGrade(ex, cw, present, excuse, cwFraction, examFraction) {
         else if (mktotal >= 60) mkgrade = "B+";
         else if (mktotal >= 50) mkgrade = "B";
         else if (mktotal >= 40) mkgrade = "C";
+        else {mkgrade = "Q"; console.log(cwmk, exmk, mktotal)}
     } else if (!present && (excuse || (excuse == undefined))) {
         if (cwmk < 0.4 * cwFraction) mkgrade = "AB*"; else mkgrade = "AB";
     } else if (!present && (excuse == 0)) {

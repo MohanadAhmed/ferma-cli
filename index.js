@@ -6,7 +6,7 @@ if (env_res.error) {
 const dbReadResultData = require('./dbReadResultData')
 const { sql } = require('./dbConn')
 const genResultFiles = require('./genResultFiles')
-const processRecommendation = require('./processRecommendation')
+const processRecommendations = require('./processRecommendation')
 const test_ACASummary = require('./test_ACASummary')
 const test_ACA_FromDB = require('./test_ACA_FromDB')
 
@@ -16,9 +16,9 @@ async function getData() {
         YearId: 2016, 
         GradeId: 1,
         SemesterId: 2,
-        SubSuppResults: true,
-        DepartmentId: 0,
-        AllDepartments: true,
+        SubSuppResults: false,
+        DepartmentId: 4,
+        AllDepartments: false,
         StudentDepartmentId: 0,
         AllStudentDepartments: true,
         DisciplineId: 0,
@@ -37,6 +37,7 @@ async function getData() {
     // });
 
     // require('fs').writeFileSync('data2.json.log', JSON.stringify(xdata, null, 2))
+    processRecommendations(xdata)
     genResultFiles(xdata, 'test.xlsx');
     sql.close()
     var t_end = Date.now();
@@ -48,7 +49,7 @@ async function getData_SubSupp(){
 }
 
 // test_ACASummary();
-test_ACA_FromDB({
+/*test_ACA_FromDB({
     YearId: 2018, 
     GradeId: 4,
     SemesterId: 2,
@@ -59,9 +60,9 @@ test_ACA_FromDB({
     AllStudentDepartments: true,
     DisciplineId: 0,
     AllDisciplines: true
-})
+})*/
 
-// getData()
+getData()
 
 // sqlConn.then((val) => {
 //     val.close();

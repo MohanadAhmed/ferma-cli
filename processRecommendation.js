@@ -1,4 +1,4 @@
-function processRecommendation(xdata) {
+function processRecommendations(xdata) {
     for (res of xdata) {
         var YearId = res.YearId;
         var GradeId = res.GradeId;
@@ -7,14 +7,17 @@ function processRecommendation(xdata) {
         var crsList = res.Courses;
         for (st of res.MarksData) {
             var process_result = processSingleStudent(st, crsList, YearId, GradeId, SemesterId);
+            st.rec = process_result.yrec;
+            st.crec = process_result.crec;
+            st.comment = process_result.comment;
         }
     }
 }
 
 function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
-    var nSubjects;
-    var nFs=0; var nDs=0; var nABs=0; var nUnexcused=0;
-    var suppFs=0; var suppDs=0; var suppABs=0;
+    var nSubjects = 0;
+    var nFs = 0; var nDs = 0; var nABs = 0; var nUnexcused = 0;
+    var suppFs = 0; var suppDs = 0; var suppABs = 0;
     var yrec; var crec;
     var comment;
     var prevCGPA = calcPreviousCGPA(st, GradeId);
@@ -25,20 +28,25 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
         var cw = st[cid + "-CW"]
         var pr = st[cid + "-PR"]
         var ec = st[cid + "-EC"]
-        if (ex === null && cw === null && pr === null && ec === null) {
-            var mkg = { total: undefined, grade: 'NT' };
-        } else {
-            var mkg = AssignGrade(ex, cw, pr, ec, crs.CourseworkFraction, crs.ExamFraction)
+
+        var mkg = { total: undefined, grade: 'NT', CreditHours: crs.CreditHours };
+        if (ex !== null || cw !== null || pr !== null && ec !== null) {
+            mkg = AssignGrade(ex, cw, pr, ec, crs.CourseworkFraction, crs.ExamFraction)
             nSubjects += 1;
             if (mkg.grade.startsWith('F')) nFs += 1;
             if (mkg.grade.startsWith('D')) nDs += 1;
             if (mkg.grade.startsWith('AB')) nABs += 1;
             if (pr == 0 && ex == 0) nUnexcused += 1;
         }
+        mkg.CreditHours = crs.CreditHours;
         return mkg;
     });
 
-    if (st.countABs !== nABs) throw new Error('Problem with computing the number of absences');
+    if (st.ABCount !== nABs) {
+        console.log(st)
+        throw new Error(`Problem with computing # absences nAB = ${nABs}, countABs = ${st.ABCount}`);
+    }
+
 
     function NiceYRecomm() {
         if (st.GPA >= 7.0) yrec = "I";
@@ -66,8 +74,8 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
     function AR_13_5() {
         if (nABs == 0)
             return;
-        var maxGPA = computeMaxGPA();
-        var minGPA = computeMinGPA();
+        var { maxGPA, minGPA } = computeMaxAndMinGPA(grTotList);
+        // console.log("Max GPA: ", maxGPA, " Min GPA: ", minGPA)
 
         if (st.GPA === null) {
             if ((nFs + nDs) == 0) {
@@ -83,16 +91,37 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
                 yrec = "Dismiss"; comment = "11.a maxGPA < 3.5";
             }
             else if (maxGPA < 4.3) {
-                yrec = "Repeat"; comment = "9.1a cannot sit for Suppp maxGPA < 4.3";
+                yrec = "Repeat"; comment = "9.1a cannot sit for Supp maxGPA < 4.3";
             }
             else if ((nFs + nDs) > Math.ceil(nSubjects / 3)) {
                 yrec = "Repeat"; comment = "9.1b cannot sit for Supp nFs > nCrs/3";
-            } else {
+            }
+            else {
                 yrec = 'Unknown'; comment = '13.5 No rule applies';
             }
         } else {
             yrec = 'Unknown'; comment = 'Cannot have GPA with nABs > 0';
         }
+    }
+
+    function computeMaxAndMinGPA(xMrkList) {
+        let sumCrHrs = xMrkList
+            .map(mkg => { return mkg.CreditHours })
+            .reduce((a, b) => { return (a + b) })
+
+        let sumMax = xMrkList
+            .map(mkg => {
+                if (mkg.grade.startsWith('AB')) return 100 * mkg.CreditHours;
+                else return mkg.total * mkg.CreditHours;
+            }).reduce((a, b) => { return (a + b) })
+
+        let sumMin = xMrkList
+            .map(mkg => {
+                if (mkg.grade.startsWith('AB')) return 0 * mkg.CreditHours;
+                else return mkg.total * mkg.CreditHours;
+            }).reduce((a, b) => { return (a + b) })
+
+        return { maxGPA: sumMax / (10 * sumCrHrs), minGPA: sumMin / (10 * sumCrHrs) }
     }
 
     //AR_11_a()
@@ -134,8 +163,11 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
 
     //AR_9_1()
     function AR_9_1() {
-        if ((st.GPA >= 4.3) && ((nFs + nDs) > 0) && ((nFs + nDs) <= Math.ceil(nSubjects / 3)) &&
-            !(nFs == 0 && nDs == 1 && st.GPA >= 4.5)) {
+        let nFDs = (nFs + nDs);
+        if (
+            ((st.GPA >= 4.3) && (nFDs > 0) && (nFDs <= Math.ceil(nSubjects / 3))) &&
+            !(nFs == 0 && nDs == 1 && st.GPA >= 4.5)
+        ) {
             yrec = 'Supp'; crec = 'Supp'; comment = `Supp ${nFs + nDs}`;
         }
     }
@@ -154,19 +186,19 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
     }
     //AR_10_2()
     function AR_10_2() {
-        if (st.GPA >= 3.5 && ((nFs + nDs) > Math.ceil(nSubjects/3)) && !(yrec == 'MultiD')){
+        if (st.GPA >= 3.5 && ((nFs + nDs) > Math.ceil(nSubjects / 3)) && !(yrec == 'MultiD')) {
             yrec = "Repeat"; crec = "Repeat"; comment += "FG10.2";
         }
     }
     //AR_10_3()
     function AR_10_3() {
-        if (prevCGPA >= 4.3 && prevCGPA < 4.5 && st.CGPA < 4.5){
+        if (prevCGPA >= 4.3 && prevCGPA < 4.5 && st.CGPA < 4.5) {
             yrec = "Repeat"; crec = "Repeat"; comment += "FG10.3";
         }
     }
     //AR_10_8()
     function AR_10_8() {
-        if (st.GPA >= 3.5 && st.GPA < 4.3 && ((nFs + nDs) <= Math.ceil(nSubjects/3)) ){
+        if (st.GPA >= 3.5 && st.GPA < 4.3 && ((nFs + nDs) <= Math.ceil(nSubjects / 3))) {
             yrec = "Repeat"; crec = "Repeat"; comment += "Mhnd/Mhmd AlBushra Case";
         }
     }
@@ -187,11 +219,33 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
 
     }
 
-    //If Not YRec.HasValue Then
-    //    YRec = RecommTypeEnum.Unknown
-    //End If
+    AR_13_5()
+
+    AR_11_a()
+    AR_11_f()
+
+    AR_8_1()
+    AR_8_2()
+    AR_8_3()
+
+    AR_9_1()
+    AR_9_2()
+
+    AR_10_1()
+    AR_10_2()
+    AR_10_3()
+    AR_10_8()
+
+    AR_11_c_10_6()
+
+    AR_11_d()
+    AR_11_e()
+
+    AR_14_4()
+
     if (yrec == null) {
         yrec = 'Unknown';
+        console.log("9_1? ", nABs, nDs, nFs, Math.ceil(nSubjects / 3))
     }
 
     //'External Students Recommendation Post Processing. Should Receive either PASS, FAIL or Sub/Supp/SubSupp
@@ -200,8 +254,10 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
 
     }
 
-    console.log(grTotList);
-    process.exit()
+    // console.log(grTotList);
+    // console.log({ yrec, crec, comment })
+    return { yrec, crec, comment }
+    // process.exit()
 }
 
 function calcPreviousCGPA(st, GradeId) {
@@ -248,4 +304,4 @@ function AssignGrade(ex, cw, present, excuse, cwFraction, examFraction) {
     }
 }
 
-module.exports = processRecommendation;
+module.exports = processRecommendations;

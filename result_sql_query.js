@@ -106,7 +106,7 @@ function result_sql_query(opts) {
 		FOR CourseId IN (${crs_ids})
 	) As PivDest1
 ) ${(GradeId > 1) ? cgpasTable_query : ''} 
-SELECT SList.StudentId, SList.[Index], SList.UnivNo, SList.NameArabic, Enrollment
+SELECT SList.StudentId, SList.[Index], SList.UnivNo, SList.NameArabic, Enrollment,
 	${crs_tot}, 
 	ABCount, (CASE WHEN ABCount = 0 THEN GPA ELSE NULL END) AS GPA, ${(GradeId > 1) ? prevGPAs + ',' : ' '} 
 	(CASE WHEN ABCount = 0 THEN ${cgpaFormula} ELSE NULL END) AS CGPA
