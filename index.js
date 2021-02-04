@@ -13,14 +13,14 @@ const test_ACA_FromDB = require('./test_ACA_FromDB')
 async function getData() {
     var t_start = Date.now();
     var xdata = await dbReadResultData({
-        YearId: 2016, 
+        YearId: 2017, 
         GradeId: 1,
         SemesterId: 2,
         SubSuppResults: false,
-        DepartmentId: 4,
+        DepartmentId: 9,
         AllDepartments: false,
-        StudentDepartmentId: 0,
-        AllStudentDepartments: true,
+        StudentDepartmentId: 4,
+        AllStudentDepartments: false,
         DisciplineId: 0,
         AllDisciplines: true
     });

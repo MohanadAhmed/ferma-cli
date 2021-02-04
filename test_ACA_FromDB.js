@@ -1,6 +1,6 @@
 const xl = require('excel4node')
 const genAcaSmrySheet = require('./genAcaSmrySheet')
-const { sqlConn } = require('./dbconn')
+const { sqlConn } = require('./dbConn')
 const aca_data_query = require('./aca_data_query')
 
 const grades = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس'];

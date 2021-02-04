@@ -13,7 +13,7 @@ const config = {
 
 const localConnString = "server=.\\sqlferma;Database=AcademicResultsDB;Trusted_Connection=Yes;Driver={SQL Server Native Client 11.0};Connection Timeout=30";
 
-const sqlConn = new sql.connect(localConnString)
+const sqlConn = new sql.connect(config)
   .then(pool => {
     return pool
   })

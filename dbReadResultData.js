@@ -1,4 +1,4 @@
-const { sqlConn } = require('./dbconn')
+const { sqlConn } = require('./dbConn')
 const result_sql_query = require('./result_sql_query');
 const subsupp_result_sql_query = require('./subsupp_result_sql_query');
 
