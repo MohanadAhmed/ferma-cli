@@ -18,7 +18,7 @@ async function getData() {
         SemesterId: 2,
         SubSuppResults: false,
         DepartmentId: 4,
-        AllDepartments: false,
+        AllDepartments: true,
         StudentDepartmentId: 0,
         AllStudentDepartments: true,
         DisciplineId: 0,
@@ -35,9 +35,8 @@ async function getData() {
     //     DisciplineId: 0,
     //     AllDisciplines: true
     // });
-
-    // require('fs').writeFileSync('data2.json.log', JSON.stringify(xdata, null, 2))
     processRecommendations(xdata)
+    require('fs').writeFileSync('data2.json.log', JSON.stringify(xdata, null, 2))
     genResultFiles(xdata, 'test.xlsx');
     sql.close()
     var t_end = Date.now();

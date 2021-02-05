@@ -10,6 +10,7 @@ function processRecommendations(xdata) {
             st.rec = process_result.yrec;
             st.crec = process_result.crec;
             st.comment = process_result.comment;
+            st.GradesTotals = process_result.grTotList;
         }
     }
 }
@@ -256,7 +257,7 @@ function processSingleStudent(st, crsList, YearId, GradeId, SemesterId) {
 
     // console.log(grTotList);
     // console.log({ yrec, crec, comment })
-    return { yrec, crec, comment }
+    return { yrec, crec, comment, grTotList }
     // process.exit()
 }
 
